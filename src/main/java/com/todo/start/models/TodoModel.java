@@ -1,6 +1,11 @@
 package com.todo.start.models;
 
+import jakarta.persistence.Entity;
+import jakarta.persistence.Id;
+
+@Entity
 public class TodoModel {
+    @Id
     private String id;
     private String content;
 

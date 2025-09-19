@@ -42,7 +42,7 @@ public TodoModel updateTodo(@RequestBody TodoModel todo) {
 
 @DeleteMapping("/{id}")
 public String deleteTodo(@PathVariable Long id) {
-    todoService.deleteTodo(id);
+    todoService.deleteTodo(id.toString());
     return "Todo deleted successfully";
 }
 @PostMapping("/bulk")
