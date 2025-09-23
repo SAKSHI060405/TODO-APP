@@ -1,46 +1,50 @@
 package com.todo.start.config;
+
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
-import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.core.userdetails.User;
-import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.security.provisioning.InMemoryUserDetailsManager;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+
 
 @Configuration
 @EnableWebSecurity
 
 public class UserAuthConfig {
-    @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity httpSecurity) throws Exception {
-        httpSecurity.authorizeHttpRequests((requests) -> requests
-                .requestMatchers("/userauth/public").permitAll()
-                .requestMatchers("/todos/**").permitAll()
-                .requestMatchers("/userauth/account").hasRole("USER")
-                .requestMatchers("/userauth/admin").hasRole("ADMIN")
-                .anyRequest().authenticated()
-        ).httpBasic(Customizer.withDefaults());
-        return httpSecurity.build();
-    }
-    @Bean
-    public UserDetailsService userDetailservice(PasswordEncoder passwordEncoder){
-        UserDetails admin= User.withUsername("admin")
-                .password(passwordEncoder.encode("admin"))
-                .roles("ADMIN")
-                .build();
-        UserDetails user= User.withUsername("user")
-                .password(passwordEncoder.encode("user"))
-                .roles("USER")
-                .build();
-        return new InMemoryUserDetailsManager(admin,user);
-    }
+
+     @Autowired
+    private JwtAuthenticationFilter jwtAuthenticationFilter;
 
     @Bean
     public PasswordEncoder passwordEncoder() {
-        return new org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder();
+        return new BCryptPasswordEncoder();
     }
+
+    @Bean
+    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+        http.csrf(csrf -> csrf.disable())
+            .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+            .authorizeHttpRequests(authz -> authz
+                // Public endpoints
+                .requestMatchers("/auth/login").permitAll()
+                .requestMatchers("/userauth/public").permitAll()
+                
+                // Protected endpoints - require JWT authentication
+                .requestMatchers("/todos/**").authenticated()
+                .requestMatchers("/userauth/account").hasRole("USER")
+                .requestMatchers("/userauth/admin").hasRole("ADMIN")
+                
+                // All other requests require authentication
+                .anyRequest().authenticated()
+            )
+            .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+
+        return http.build();
+    }
+
 }
