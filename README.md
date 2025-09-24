@@ -1,2 +1,2 @@
 
-JWT implementation for user and admin
+JWT implementation for user and admin.
